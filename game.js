@@ -1,105 +1,101 @@
-// game.js — Main game controller
+// game.js — Main controller
 
-// ══════════════════════════════
-// GAME STATE
-// ══════════════════════════════
 const Game = {
-  venue: null,
+  venue:       null,
   eventMeters: null,
-  athleteIdx: 0,
-  raceEngine: null,
-  raceTrack: null,
-  animFrame: null,
-  lastTime: 0,
-  phase: 'intro',
-  countdownTimer: 0,
-  countdownStep: 0, // 0=blocks 1=set 2=go 3=running
+  athleteIdx:  0,
+  raceEngine:  null,
+  raceTrack:   null,
+  animFrame:   null,
+  lastTime:    0,
+  phase:       'intro',
 };
 
-// ══════════════════════════════
-// SCREEN MANAGEMENT
-// ══════════════════════════════
+// ── SCREEN MANAGER ──────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const el = document.getElementById(id);
-  el.classList.add('active');
+  document.getElementById(id).classList.add('active');
 }
 
-// ══════════════════════════════
-// INTRO SCREEN
-// ══════════════════════════════
+// ── INTRO ────────────────────────────────────────────
 (function initIntro() {
   let frame = 0;
   const canvas = document.getElementById('intro-canvas');
-  const ctx = canvas.getContext('2d');
+  const ctx    = canvas.getContext('2d');
 
-  function animateRunner() {
+  function loop() {
     ctx.clearRect(0, 0, 200, 260);
-    if (ATHLETES && ATHLETES[0]) {
-      drawAthlete(ctx, ATHLETES[0], 100, 180, frame, true, 2.8);
+    if (typeof ATHLETES !== 'undefined') {
+      drawAthlete(ctx, ATHLETES[0], 100, 190, frame, true, 2.8);
     }
     frame++;
-    requestAnimationFrame(animateRunner);
+    requestAnimationFrame(loop);
   }
-  animateRunner();
+  loop();
 
   document.getElementById('btn-start').addEventListener('click', () => {
+    Game.phase = 'select';
     showScreen('screen-select');
     initSelectScreen();
   });
-
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', e => {
     if (e.code === 'Space' && Game.phase === 'intro') {
+      e.preventDefault();
       document.getElementById('btn-start').click();
     }
   });
 })();
 
-// ══════════════════════════════
-// SELECT SCREEN
-// ══════════════════════════════
+// ── VENUE SELECT ─────────────────────────────────────
 function initSelectScreen() {
-  // Draw track previews
   const ic = document.getElementById('preview-indoor');
   const oc = document.getElementById('preview-outdoor');
   if (ic) drawTrackPreview(ic, 'indoor');
   if (oc) drawTrackPreview(oc, 'outdoor');
 
   document.querySelectorAll('.venue-card').forEach(card => {
-    card.addEventListener('click', () => {
-      Game.venue = card.dataset.venue;
+    // Remove old listeners by cloning
+    const fresh = card.cloneNode(true);
+    card.parentNode.replaceChild(fresh, card);
+    fresh.addEventListener('click', () => {
+      Game.venue = fresh.dataset.venue;
       showScreen('screen-event');
       initEventScreen();
     });
   });
+
+  // Redraw previews after clone
+  const ic2 = document.getElementById('preview-indoor');
+  const oc2 = document.getElementById('preview-outdoor');
+  if (ic2) drawTrackPreview(ic2, 'indoor');
+  if (oc2) drawTrackPreview(oc2, 'outdoor');
 }
 
 document.getElementById('btn-back-select').addEventListener('click', () => {
-  showScreen('screen-intro');
   Game.phase = 'intro';
+  showScreen('screen-intro');
 });
 
-// ══════════════════════════════
-// EVENT SCREEN
-// ══════════════════════════════
+// ── EVENT SELECT ─────────────────────────────────────
 function initEventScreen() {
   const title = document.getElementById('event-screen-title');
   title.textContent = (Game.venue === 'indoor' ? 'INDOOR' : 'OUTDOOR') + ' — SELECT EVENT';
 
   const events = Game.venue === 'indoor'
     ? [
-        { meters: 60,  label: '60', laps: '1 STRAIGHT' },
-        { meters: 200, label: '200', laps: '1 CURVE + STRAIGHT' },
-        { meters: 400, label: '400', laps: '2 LAPS' },
+        { meters: 60,  label: '60',  sub: '1 STRAIGHT' },
+        { meters: 200, label: '200', sub: '1 CURVE + STRAIGHT' },
+        { meters: 400, label: '400', sub: '2 LAPS' },
       ]
     : [
-        { meters: 100, label: '100', laps: '1 STRAIGHT' },
-        { meters: 200, label: '200', laps: 'HALF OVAL' },
-        { meters: 400, label: '400', laps: '1 LAP' },
+        { meters: 100, label: '100', sub: '1 STRAIGHT' },
+        { meters: 200, label: '200', sub: 'HALF OVAL' },
+        { meters: 400, label: '400', sub: '1 LAP' },
       ];
 
   const container = document.getElementById('event-buttons');
   container.innerHTML = '';
+  Game.eventMeters = events[0].meters;
 
   events.forEach((ev, i) => {
     const btn = document.createElement('div');
@@ -107,8 +103,7 @@ function initEventScreen() {
     btn.innerHTML = `
       <div class="event-btn-dist">${ev.label}</div>
       <div class="event-btn-unit">METERS</div>
-      <div class="event-btn-laps">${ev.laps}</div>
-    `;
+      <div class="event-btn-laps">${ev.sub}</div>`;
     btn.addEventListener('click', () => {
       document.querySelectorAll('.event-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
@@ -117,43 +112,53 @@ function initEventScreen() {
     container.appendChild(btn);
   });
 
-  Game.eventMeters = events[0].meters;
-
   // Athlete cards
   const cards = document.querySelectorAll('.athlete-card');
   cards.forEach(card => {
     const idx = parseInt(card.dataset.athlete);
-    const canvas = card.querySelector('.athlete-preview');
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
+    const cvs = card.querySelector('.athlete-preview');
+    if (cvs) {
+      const ctx = cvs.getContext('2d');
       ctx.clearRect(0, 0, 60, 80);
-      drawAthleteStanding(ctx, ATHLETES[idx], 30, 35, 0.9);
+      drawAthleteStanding(ctx, ATHLETES[idx], 30, 38, 0.85);
     }
-    card.addEventListener('click', () => {
-      cards.forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
+    const fresh = card.cloneNode(true);
+    card.parentNode.replaceChild(fresh, card);
+    // Redraw after clone
+    const cvs2 = fresh.querySelector('.athlete-preview');
+    if (cvs2) {
+      const ctx2 = cvs2.getContext('2d');
+      ctx2.clearRect(0,0,60,80);
+      drawAthleteStanding(ctx2, ATHLETES[idx], 30, 38, 0.85);
+    }
+    fresh.addEventListener('click', () => {
+      document.querySelectorAll('.athlete-card').forEach(c => c.classList.remove('selected'));
+      fresh.classList.add('selected');
       Game.athleteIdx = idx;
     });
   });
 
-  // Animate athletes
-  let f = 0;
-  function animCards() {
-    if (document.getElementById('screen-event').classList.contains('active')) {
-      cards.forEach(card => {
-        const idx = parseInt(card.dataset.athlete);
-        const canvas = card.querySelector('.athlete-preview');
-        if (canvas && card.classList.contains('selected')) {
-          const ctx = canvas.getContext('2d');
-          ctx.clearRect(0, 0, 60, 80);
-          drawAthlete(ctx, ATHLETES[idx], 30, 48, f, true, 0.9);
+  // Animate selected athlete card
+  let af = 0;
+  let animId;
+  function animSelected() {
+    document.querySelectorAll('.athlete-card').forEach(card => {
+      if (card.classList.contains('selected')) {
+        const idx2 = parseInt(card.dataset.athlete);
+        const cvs2 = card.querySelector('.athlete-preview');
+        if (cvs2) {
+          const ctx2 = cvs2.getContext('2d');
+          ctx2.clearRect(0,0,60,80);
+          drawAthlete(ctx2, ATHLETES[idx2], 30, 50, af, true, 0.85);
         }
-      });
-      f++;
-      requestAnimationFrame(animCards);
+      }
+    });
+    af++;
+    if (document.getElementById('screen-event').classList.contains('active')) {
+      animId = requestAnimationFrame(animSelected);
     }
   }
-  animCards();
+  animSelected();
 }
 
 document.getElementById('btn-back-event').addEventListener('click', () => {
@@ -162,160 +167,186 @@ document.getElementById('btn-back-event').addEventListener('click', () => {
 });
 
 document.getElementById('btn-race').addEventListener('click', () => {
-  startRace();
+  showIntroduction();
 });
 
-// ══════════════════════════════
-// RACE SCREEN
-// ══════════════════════════════
-function startRace() {
-  // Cancel any existing loop
-  if (Game.animFrame) cancelAnimationFrame(Game.animFrame);
-  if (Game.raceEngine) Game.raceEngine.destroy();
-
+// ── PRE-RACE ATHLETE INTRODUCTION ────────────────────
+function showIntroduction() {
+  // Show the introduction overlay on the race screen
   showScreen('screen-race');
 
   const canvas = document.getElementById('race-canvas');
   canvas.style.width = '100%';
   canvas.style.display = 'block';
 
+  // Build intro overlay content
+  const overlay = document.getElementById('race-overlay');
+  const phaseEl = document.getElementById('overlay-phase');
+  overlay.classList.remove('hidden');
+
+  const athlete = ATHLETES[Game.athleteIdx];
+  const laneCount = TRACK_CONFIG[Game.venue].lanes;
+  const playerLane = Math.floor(laneCount / 2) + 1; // 1-indexed for display
+
+  phaseEl.innerHTML = `
+    <div style="font-size:1rem;letter-spacing:.25em;color:var(--muted);margin-bottom:8px">YOU ARE RACING AS</div>
+    <div style="font-size:4.5rem;color:${athlete.color};line-height:1;margin-bottom:4px">${athlete.name}</div>
+    <div style="font-size:1rem;letter-spacing:.2em;color:var(--muted);margin-bottom:20px">
+      LANE <span style="color:white;font-size:2rem">${playerLane}</span> of ${laneCount}
+    </div>
+    <div style="display:flex;gap:24px;justify-content:center;margin-bottom:18px;font-size:.85rem;letter-spacing:.12em">
+      <div><span style="color:var(--muted)">SPEED</span><br>${'█'.repeat(Math.round(athlete.topSpeed*5))}${'░'.repeat(5-Math.round(athlete.topSpeed*5))}</div>
+      <div><span style="color:var(--muted)">ACCEL</span><br>${'█'.repeat(Math.round(athlete.acceleration*5))}${'░'.repeat(5-Math.round(athlete.acceleration*5))}</div>
+      <div><span style="color:var(--muted)">STAMINA</span><br>${'█'.repeat(Math.round(athlete.stamina*5))}${'░'.repeat(5-Math.round(athlete.stamina*5))}</div>
+    </div>
+    <div style="font-size:.9rem;letter-spacing:.15em;color:var(--gold)">
+      ${Game.venue.toUpperCase()} · ${Game.eventMeters}m${Game.venue==='indoor'&&Game.eventMeters===400?' · 2 LAPS':''}
+    </div>
+    <div style="font-size:.75rem;letter-spacing:.15em;color:var(--muted);margin-top:24px;animation:phasePulse .8s infinite alternate">
+      GET READY...
+    </div>
+  `;
+
+  // Draw still background on canvas while intro shows
   Game.raceEngine = new RaceEngine(Game.venue, Game.eventMeters, Game.athleteIdx);
-  Game.raceTrack = new RaceTrack(canvas, Game.venue, Game.eventMeters);
+  Game.raceTrack  = new RaceTrack(canvas, Game.venue, Game.eventMeters);
+  Game.raceTrack.draw(0, Game.raceEngine.allRunners);
 
-  // HUD setup
-  document.getElementById('hud-event-name').textContent =
-    (Game.venue === 'indoor' ? 'INDOOR ' : 'OUTDOOR ') + Game.eventMeters + 'm';
+  // After 3 seconds, start countdown
+  setTimeout(() => startCountdown(), 3000);
+}
 
-  const lapEl = document.getElementById('hud-lap');
-  if (Game.raceEngine.totalLaps > 1) {
-    lapEl.textContent = 'LAP 1 / ' + Game.raceEngine.totalLaps;
-  } else {
-    lapEl.textContent = '';
-  }
+// ── COUNTDOWN & RACE START ───────────────────────────
+function startCountdown() {
+  const overlay = document.getElementById('race-overlay');
+  const phaseEl = document.getElementById('overlay-phase');
 
-  // Countdown sequence
-  Game.countdownStep = 0;
+  phaseEl.style.fontSize = '';
+  phaseEl.style.color    = '';
+
   Game.raceEngine.startBlocks();
 
-  const overlay = document.getElementById('race-overlay');
-  const overlayPhase = document.getElementById('overlay-phase');
-
-  overlay.classList.remove('hidden');
-  overlayPhase.textContent = 'ON YOUR MARKS';
+  phaseEl.innerHTML = 'ON YOUR MARKS';
+  phaseEl.style.fontSize = 'clamp(3rem,8vw,6.5rem)';
 
   setTimeout(() => {
-    overlayPhase.textContent = 'GET SET';
+    phaseEl.innerHTML = 'GET SET';
     Game.raceEngine.triggerSet();
-    setTimeout(() => {
-      overlayPhase.style.color = '#2ECC71';
-      overlayPhase.textContent = 'GO!';
-      Game.raceEngine.triggerGo();
-      setTimeout(() => {
-        overlay.classList.add('hidden');
-        overlayPhase.style.color = '';
-      }, 600);
-    }, 900);
   }, 1400);
 
+  setTimeout(() => {
+    phaseEl.style.color   = '#2ECC71';
+    phaseEl.innerHTML     = 'GO!';
+    Game.raceEngine.triggerGo();
+
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      beginRaceLoop();
+    }, 550);
+  }, 2400);
+}
+
+// ── RACE LOOP ─────────────────────────────────────────
+function beginRaceLoop() {
+  const canvas  = document.getElementById('race-canvas');
+  const engine  = Game.raceEngine;
+  const track   = Game.raceTrack;
+
+  // HUD
+  document.getElementById('hud-event-name').textContent =
+    (Game.venue === 'indoor' ? 'INDOOR ' : 'OUTDOOR ') + Game.eventMeters + 'm';
+  const lapEl = document.getElementById('hud-lap');
+  lapEl.textContent = engine.totalLaps > 1 ? 'LAP 1 / ' + engine.totalLaps : '';
+
   Game.lastTime = performance.now();
-  Game.phase = 'race';
 
-  function gameLoop(timestamp) {
-    const dt = Math.min((timestamp - Game.lastTime) / 1000, 0.05);
-    Game.lastTime = timestamp;
+  function loop(ts) {
+    const dt = Math.min((ts - Game.lastTime) / 1000, 0.05);
+    Game.lastTime = ts;
 
-    const engine = Game.raceEngine;
     engine.update(dt);
 
-    // Update HUD
-    document.getElementById('hud-time').textContent =
-      engine.elapsed.toFixed(3);
+    // HUD updates
+    document.getElementById('hud-time').textContent = engine.elapsed.toFixed(3);
 
-    const speedPct = Math.min(100, (engine.player.speed / (engine.player.speedParams.topSpeed)) * 100);
-    document.getElementById('hud-speed-fill').style.width = speedPct + '%';
-    document.getElementById('hud-stamina-fill').style.width =
-      (engine.player.stamina * 100) + '%';
+    const spPct = Math.min(100, (engine.player.speed / engine.player.speedParams.topSpeed) * 100);
+    document.getElementById('hud-speed-fill').style.width   = spPct + '%';
+    document.getElementById('hud-stamina-fill').style.width = (engine.player.stamina * 100) + '%';
 
     if (engine.totalLaps > 1) {
-      const lap = engine.getPlayerLap();
-      lapEl.textContent = `LAP ${lap} / ${engine.totalLaps}`;
+      lapEl.textContent = 'LAP ' + engine.getPlayerLap() + ' / ' + engine.totalLaps;
     }
 
-    // Render track
-    Game.raceTrack.draw(engine.player.progress, engine.allRunners, engine.player.lane);
+    // Draw
+    track.draw(engine.player.progress, engine.allRunners);
 
     if (engine.isFinished()) {
       Game.animFrame = null;
-      setTimeout(() => showResults(), 1200);
+      setTimeout(showResults, 1400);
       return;
     }
 
-    Game.animFrame = requestAnimationFrame(gameLoop);
+    Game.animFrame = requestAnimationFrame(loop);
   }
 
-  Game.animFrame = requestAnimationFrame(gameLoop);
+  Game.animFrame = requestAnimationFrame(loop);
 }
 
-// ══════════════════════════════
-// RESULTS SCREEN
-// ══════════════════════════════
+// ── RESULTS ───────────────────────────────────────────
 function showResults() {
   const results = Game.raceEngine.getResults();
-
-  // Clean up
-  if (Game.raceEngine) Game.raceEngine.destroy();
+  if (Game.raceEngine) { Game.raceEngine.destroy(); }
 
   showScreen('screen-result');
 
-  const places = ['🥇', '🥈', '🥉', '4TH', '5TH', '6TH', '7TH', '8TH'];
-  const placeNames = ['1ST PLACE', '2ND PLACE', '3RD PLACE', '4TH PLACE', '5TH PLACE', '6TH PLACE', '7TH PLACE', '8TH PLACE'];
-
+  const medals     = ['🥇','🥈','🥉'];
+  const placeNames = ['1ST PLACE','2ND PLACE','3RD PLACE','4TH PLACE','5TH PLACE','6TH PLACE','7TH PLACE','8TH PLACE'];
   const place = results.place || 1;
-  document.getElementById('result-medal').textContent =
-    place <= 3 ? places[place - 1] : '🏃';
-  document.getElementById('result-place').textContent =
-    placeNames[Math.min(place - 1, placeNames.length - 1)];
+
+  document.getElementById('result-medal').textContent = place <= 3 ? medals[place-1] : '🏃';
+  document.getElementById('result-place').textContent = placeNames[Math.min(place-1, placeNames.length-1)];
   document.getElementById('result-event-name').textContent =
     (Game.venue === 'indoor' ? 'INDOOR ' : 'OUTDOOR ') + Game.eventMeters + 'm';
 
   const t = results.time || 0;
-  document.getElementById('result-time').textContent = t.toFixed(2);
 
   if (results.isWorldRecord) {
-    document.getElementById('result-record').textContent = '🌟 WORLD RECORD BROKEN!';
-  } else if (results.worldRecord) {
+    document.getElementById('result-record').textContent = '🌟 NEW WORLD RECORD!';
+  } else {
     const diff = (t - results.worldRecord).toFixed(2);
     document.getElementById('result-record').textContent =
-      `WR: ${results.worldRecord.toFixed(2)}s  (+${diff}s behind)`;
+      `WR: ${results.worldRecord.toFixed(2)}s  (+${diff}s off record)`;
   }
 
-  // Personal best storage
-  const pbKey = `pb_${results.eventKey}`;
-  const prevPB = parseFloat(localStorage.getItem(pbKey)) || 9999;
-  if (t < prevPB) {
-    localStorage.setItem(pbKey, t.toFixed(3));
-    if (!results.isWorldRecord) {
-      document.getElementById('result-record').textContent += ' 🎉 NEW PERSONAL BEST!';
+  // Personal best
+  try {
+    const pbKey  = 'pb_' + results.eventKey;
+    const prevPB = parseFloat(localStorage.getItem(pbKey)) || 9999;
+    if (t < prevPB) {
+      localStorage.setItem(pbKey, t.toFixed(3));
+      if (!results.isWorldRecord) {
+        document.getElementById('result-record').textContent += ' 🎉 NEW PERSONAL BEST!';
+      }
     }
-  }
+  } catch(e) {}
 
-  // Animate time counter
-  const timeEl = document.getElementById('result-time');
-  let dispTime = 0;
-  const dur = 1.2;
-  const startTs = performance.now();
+  // Animated time counter
+  const timeEl   = document.getElementById('result-time');
+  const startTs  = performance.now();
+  const dur      = 1100;
   function countUp(ts) {
-    const frac = Math.min((ts - startTs) / (dur * 1000), 1);
+    const frac = Math.min((ts - startTs) / dur, 1);
     const ease = 1 - Math.pow(1 - frac, 3);
-    dispTime = ease * t;
-    timeEl.textContent = dispTime.toFixed(2);
+    timeEl.textContent = (ease * t).toFixed(2);
     if (frac < 1) requestAnimationFrame(countUp);
   }
   requestAnimationFrame(countUp);
 }
 
+// ── RESULT BUTTONS ────────────────────────────────────
 document.getElementById('btn-retry').addEventListener('click', () => {
-  startRace();
+  if (Game.animFrame) cancelAnimationFrame(Game.animFrame);
+  showIntroduction();
 });
 
 document.getElementById('btn-menu').addEventListener('click', () => {
@@ -325,22 +356,18 @@ document.getElementById('btn-menu').addEventListener('click', () => {
   showScreen('screen-intro');
 });
 
-// ══════════════════════════════
-// TOUCH INPUT
-// ══════════════════════════════
-document.addEventListener('touchstart', (e) => {
-  if (Game.phase === 'race' && Game.raceEngine) {
+// ── TOUCH INPUT ───────────────────────────────────────
+document.addEventListener('touchstart', e => {
+  if (Game.raceEngine && Game.raceEngine.state === 'running') {
     e.preventDefault();
-    Game.raceEngine._handleInput('Space');
+    Game.raceEngine.handleTouch();
   }
 }, { passive: false });
 
-// ══════════════════════════════
-// RESIZE
-// ══════════════════════════════
+// ── RESIZE ────────────────────────────────────────────
 window.addEventListener('resize', () => {
   if (Game.raceTrack) Game.raceTrack._resize();
 });
 
-// Start
+// Boot
 showScreen('screen-intro');

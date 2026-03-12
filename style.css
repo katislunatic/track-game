@@ -562,3 +562,26 @@ kbd {
   .event-buttons { flex-direction: column; }
   .athlete-cards { overflow-x: auto; }
 }
+
+/* ── INTRO OVERLAY ATHLETE CARD ── */
+.overlay-phase {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(4rem, 10vw, 8rem);
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  text-shadow: 0 0 60px rgba(255,208,96,0.5);
+  animation: phasePulse 0.5s ease-in-out infinite alternate;
+  text-align: center;
+  line-height: 1.15;
+}
+
+/* Override for athlete intro card — less giant font */
+.race-overlay .overlay-box {
+  background: rgba(10,10,20,0.88);
+  border: 1px solid var(--mid);
+  border-radius: 12px;
+  padding: 36px 52px;
+  max-width: 520px;
+  width: 90vw;
+  backdrop-filter: blur(8px);
+}

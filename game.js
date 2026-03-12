@@ -269,8 +269,7 @@ function beginRaceLoop() {
     // HUD updates
     document.getElementById('hud-time').textContent = engine.elapsed.toFixed(3);
 
-    const spPct = Math.min(100, (engine.player.speed / engine.player.speedParams.topSpeed) * 100);
-    document.getElementById('hud-speed-fill').style.width   = spPct + '%';
+    document.getElementById('hud-speed-fill').style.width   = engine.getSpeedPercent() + '%';
     document.getElementById('hud-stamina-fill').style.width = (engine.player.stamina * 100) + '%';
 
     if (engine.totalLaps > 1) {

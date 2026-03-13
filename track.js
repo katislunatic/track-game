@@ -540,17 +540,13 @@ class RaceTrack {
   }
 
   _spriteOval(ctx, runner, x, y, tx, ty, scaleOverride) {
-    ctx.save();
-    ctx.translate(x, y);
-    const angle = Math.atan2(ty, tx);
-    ctx.rotate(angle);
     const scale = scaleOverride !== undefined ? scaleOverride : 0.68;
-    ctx.scale(scale, scale);
+    // Keep sprite upright — just flip horizontally based on movement direction
+    const facingRight = tx >= 0;
     if (runner.isPlayer)
-      drawAthlete(ctx, ATHLETES[runner.athleteIdx||0], 0, 0, runner.frame, true, 1);
+      drawAthlete(ctx, ATHLETES[runner.athleteIdx||0], x, y, runner.frame, facingRight, scale);
     else
-      drawOpponent(ctx, 0, 0, runner.frame, runner.color, runner.skinTone, 1);
-    ctx.restore();
+      drawOpponent(ctx, x, y, runner.frame, runner.color, runner.skinTone, scale);
   }
 
   _youLabel(ctx, x, y) {

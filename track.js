@@ -169,10 +169,9 @@ class RaceTrack {
       this.raceType = 'oval'; // 200m and 400m both rendered on the oval
     }
 
-    // For 200m: race starts halfway around the oval (back straight) so finish = t=1.0
-    // For 400m: race starts at t=0, runs totalLaps laps
-    this.startT   = (eventMeters === 200) ? 0.5 : 0.0;
-    this.ovalFrac = (eventMeters === 200) ? 0.5 : 1.0;
+    // All oval races start at t=0 and run full laps
+    this.startT   = 0.0;
+    this.ovalFrac = 1.0;
 
     this._resize();
   }

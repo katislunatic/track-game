@@ -163,9 +163,18 @@ class RaceTrack {
       this.raceType = 'oval'; // 200m and 400m both rendered on the oval
     }
 
-    // All oval races start at t=0 and run full laps
-    this.startT   = 0.0;
-    this.ovalFrac = 1.0;
+    // startT = where on the oval the race begins (0..1)
+    // ovalFrac = what fraction of the oval is covered per lap
+    // outdoor 200m: starts at back straight (t=0.5), runs half the oval to finish
+    // indoor 200m: full lap
+    // 400m: full lap(s)
+    if (venueType === 'outdoor' && eventMeters === 200) {
+      this.startT   = 0.5;
+      this.ovalFrac = 0.5;
+    } else {
+      this.startT   = 0.0;
+      this.ovalFrac = 1.0;
+    }
 
     this._resize();
   }
@@ -345,23 +354,57 @@ class RaceTrack {
       ovalPath(ctx, cx, cy, laneRadii[i], S); ctx.stroke();
     }
 
-    // Start/finish line
-    const sfX  = cx + S;
-    const sfY1 = cy - outerR;
-    const sfY2 = cy - innerR;
-    const bh   = (sfY2 - sfY1) / 10;
-    for (let row = 0; row < 10; row++) for (let col = 0; col < 2; col++) {
-      ctx.fillStyle = (row + col) % 2 === 0 ? 'white' : '#111';
-      ctx.fillRect(sfX - 4 + col * 4, sfY1 + row * bh, 4, bh);
-    }
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = `bold ${Math.round(laneW * 0.55)}px "Bebas Neue",sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-    ctx.fillText('START/FINISH', sfX, sfY1 - 4);
+    // Start/finish line(s)
+    const isOutdoor200 = this.venueType === 'outdoor' && this.eventMeters === 200;
 
-    // Stagger marks for 400m
-    if (this.eventMeters === 400) {
-      this._staggerMarks(ctx, cx, cy, innerR, S, laneRadii, lanes, laneW);
+    if (isOutdoor200) {
+      // FINISH line: at t=0 (right side top of right arc)
+      const finX  = cx + S;
+      const finY1 = cy - outerR, finY2 = cy - innerR;
+      const fbh   = (finY2 - finY1) / 10;
+      for (let row = 0; row < 10; row++) for (let col = 0; col < 2; col++) {
+        ctx.fillStyle = (row + col) % 2 === 0 ? 'white' : '#111';
+        ctx.fillRect(finX - 4 + col * 4, finY1 + row * fbh, 4, fbh);
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Bebas Neue",sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText('FINISH', finX, finY1 - 4);
+
+      // START line: at t=0.5 (left side top of left arc)
+      // t=0.5 position on the outer/inner edge of the track
+      const startPosOuter = ovalPos(0.5, cx, cy, outerR, S);
+      const startPosInner = ovalPos(0.5, cx, cy, innerR, S);
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(startPosOuter.x, startPosOuter.y);
+      ctx.lineTo(startPosInner.x, startPosInner.y);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Bebas Neue",sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText('START', startPosOuter.x, startPosOuter.y - 4);
+
+      // Stagger marks for 200m (outer lanes start further ahead)
+      this._staggerMarks(ctx, cx, cy, innerR, S, laneRadii, lanes, laneW, 0.5);
+    } else {
+      // Normal start/finish at t=0 (right side)
+      const sfX  = cx + S;
+      const sfY1 = cy - outerR, sfY2 = cy - innerR;
+      const bh   = (sfY2 - sfY1) / 10;
+      for (let row = 0; row < 10; row++) for (let col = 0; col < 2; col++) {
+        ctx.fillStyle = (row + col) % 2 === 0 ? 'white' : '#111';
+        ctx.fillRect(sfX - 4 + col * 4, sfY1 + row * bh, 4, bh);
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Bebas Neue",sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText('START/FINISH', sfX, sfY1 - 4);
+
+      // Stagger marks for 400m
+      if (this.eventMeters === 400) {
+        this._staggerMarks(ctx, cx, cy, innerR, S, laneRadii, lanes, laneW, 0);
+      }
     }
 
     // Lane numbers (on bottom straight)
@@ -432,12 +475,23 @@ class RaceTrack {
     // Outer border
     ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1;
     ovalPath(ctx, mcx, mcy, outerR, S); ctx.stroke();
-    // Start/finish tick
+    // Start/finish tick(s)
     ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5;
+    // Finish always at t=0 (right side)
     ctx.beginPath();
     ctx.moveTo(mcx + S, mcy - outerR);
     ctx.lineTo(mcx + S, mcy - innerR);
     ctx.stroke();
+    // For outdoor 200m also show start at t=0.5
+    if (this.venueType === 'outdoor' && this.eventMeters === 200) {
+      const sp = ovalPos(0.5, mcx, mcy, (outerR + innerR) / 2, S);
+      const perp = { x: -sp.ty * (outerR - innerR) / 2, y: sp.tx * (outerR - innerR) / 2 };
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.beginPath();
+      ctx.moveTo(sp.x - perp.x, sp.y - perp.y);
+      ctx.lineTo(sp.x + perp.x, sp.y + perp.y);
+      ctx.stroke();
+    }
     // Runner dots
     runners.forEach(r => {
       const ovalT   = (this.startT + r.progress * this.ovalFrac * this.totalLaps) % 1;
@@ -456,25 +510,18 @@ class RaceTrack {
   }
 
   // ── STAGGER MARKS ──────────────────────────────────────
-  _staggerMarks(ctx, cx, cy, innerR, S, laneRadii, lanes, laneW) {
-    // Stagger for lane i = extra oval circumference vs lane 0
-    // Inner lane perimeter = 2*π*innerR + 4*S  (using half-S convention: 4*S not 2*S)
-    // Wait — our S is HALF the straight: straight length = 2*S
-    // Perimeter = π*R + 2*S + π*R + 2*S = 2*π*R + 4*S
+  _staggerMarks(ctx, cx, cy, innerR, S, laneRadii, lanes, laneW, baseT = 0) {
     const innerPerim = 2*Math.PI*innerR + 4*S;
     ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 2;
 
     for (let i = 1; i < lanes; i++) {
-      const laneR   = (laneRadii[i]+laneRadii[i+1])/2;
+      const laneR     = (laneRadii[i]+laneRadii[i+1])/2;
       const lanePerim = 2*Math.PI*laneR + 4*S;
-      // Fraction ahead of start line for this lane's start position
       const staggerFrac = (lanePerim - innerPerim) / lanePerim;
       if (staggerFrac <= 0) continue;
 
-      // The stagger mark sits at ovalT = staggerFrac on this lane
-      const pos = ovalPos(staggerFrac % 1, cx, cy, laneR, S);
-      // Draw a short perpendicular line across the lane
-      const px = -pos.ty, py = pos.tx; // perpendicular
+      const pos = ovalPos((baseT + staggerFrac) % 1, cx, cy, laneR, S);
+      const px = -pos.ty, py = pos.tx;
       ctx.beginPath();
       ctx.moveTo(pos.x + px*laneW*0.55, pos.y + py*laneW*0.55);
       ctx.lineTo(pos.x - px*laneW*0.55, pos.y - py*laneW*0.55);

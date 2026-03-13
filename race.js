@@ -41,13 +41,13 @@ class RaceEngine {
 
     const a = this.athlete;
     // Top speed in m/s — tuned per event
-    const topSpeeds = { 60:12.0, 100:12.0, 200:11.5, 400:10.5 };
+    const topSpeeds = { 60:12.0, 100:12.0, 200:11.5, 400:13.5 };
     const topSpeed  = (topSpeeds[eventMeters] || 11.0) * (0.88 + a.topSpeed * 0.12);
     // Speed added per keypress
-    const addPerPress  = 1.5 * (0.85 + a.acceleration * 0.15);
+    const addPerPress  = (eventMeters >= 400 ? 2.2 : 1.5) * (0.85 + a.acceleration * 0.15);
     // Speed decay per second (player must keep pressing)
-    const decayPerSec  = 3.0 * (1.05 - a.stamina * 0.10);
-    const staminaBonus = eventMeters >= 400 ? 2.5 : eventMeters >= 200 ? 0.8 : 0;
+    const decayPerSec  = (eventMeters >= 400 ? 2.0 : 3.0) * (1.05 - a.stamina * 0.10);
+    const staminaBonus = eventMeters >= 400 ? 1.2 : eventMeters >= 200 ? 0.8 : 0;
 
     this.player = {
       isPlayer:   true,
@@ -63,7 +63,7 @@ class RaceEngine {
       finishTime: null,
       place:      null,
       sp: { topSpeed, addPerPress, decayPerSec, staminaBonus,
-            staminaDrain: eventMeters>=400 ? 0.00035 : eventMeters>=200 ? 0.00008 : 0 }
+            staminaDrain: eventMeters>=400 ? 0.00012 : eventMeters>=200 ? 0.00008 : 0 }
     };
 
     this.opponents  = this._genOpponents(laneCount);

@@ -53,8 +53,8 @@ class RaceEngine {
       isPlayer:   true,
       lane:       this.playerLane,
       athleteIdx: athleteIdx,
-      // progress = 0..1 = fraction of TOTAL RACE (eventMeters * totalLaps)
       progress:   0,
+      staggerT:   0, // set after _staggerOvalT is available
       speed:      0,
       stamina:    1.0,
       frame:      0,
@@ -67,8 +67,23 @@ class RaceEngine {
     };
 
     this.opponents  = this._genOpponents(laneCount);
+    // Apply stagger oval-T offsets
+    this.player.staggerT = this._staggerOvalT(this.playerLane);
+    this.opponents.forEach(op => { op.staggerT = this._staggerOvalT(op.lane); });
     this.allRunners = [this.player, ...this.opponents];
     this._bindInput();
+  }
+
+  // Calculate per-lane stagger as an oval-T offset (visual only)
+  // Outer lanes start further around the oval, but all run the same progress 0→1
+  _staggerOvalT(laneIdx) {
+    const isStaggered = (this.eventMeters === 200 || this.eventMeters === 400);
+    if (!isStaggered) return 0;
+    // Real stagger: each lane out adds 2π * laneWidth in metres
+    // laneWidth ≈ 1.22m real world
+    const staggerPerLane = 2 * Math.PI * 1.22; // ~7.67m per lane
+    const totalOvalMetres = this.eventMeters; // one lap = eventMeters metres
+    return (laneIdx * staggerPerLane) / totalOvalMetres;
   }
 
   _genOpponents(laneCount) {
@@ -90,7 +105,7 @@ class RaceEngine {
         color:         oc.color,
         skinTone:      oc.skinTone,
         progress:      0,
-        speed:         0,
+        staggerT:      0, // set after construction
         stamina:       1.0,
         frame:         0,
         frameTimer:    0,

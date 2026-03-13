@@ -74,15 +74,21 @@ function calcGeo(W, H, venueType, margin) {
   const avW    = W - margin*2;
   const avH    = H - margin*2;
 
+  // Total oval width = 2*outerR + 2*S  (outerR = R + lanes*laneW... wait)
+  // outerR is the OUTER radius.  We want the oval to fill the available space.
+  // Oval width = 2*(outerR + S),  height = 2*outerR
+  // So: outerR = avH/2,   S = avW/2 - outerR
   let outerR = avH / 2;
   let S      = avW/2 - outerR;
   if (S < outerR * 0.15) {
+    // Screen too square — shrink everything proportionally
     const scale = avW / (avH * 1.6);
     outerR = (avH / 2) * scale;
     S      = avW/2 - outerR;
   }
   if (S < 10) S = 10;
 
+  // Shrink laneW if needed so innerR stays positive
   const minInner = outerR * 0.30;
   if (outerR - lanes * laneW < minInner) {
     laneW = Math.floor((outerR - minInner) / lanes);
@@ -139,7 +145,7 @@ function drawTrackPreview(canvas, venueType) {
 
   // Label
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.font = 'bold 10px "Press Start 2P",monospace';
+  ctx.font = 'bold 10px "Barlow Condensed",sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   ctx.fillText(cfg.label, cx, H-5);
 }
@@ -163,18 +169,10 @@ class RaceTrack {
       this.raceType = 'oval'; // 200m and 400m both rendered on the oval
     }
 
-    // startT = where on the oval the race begins (0..1)
-    // ovalFrac = what fraction of the oval is covered per lap
-    // outdoor 200m: starts at back straight (t=0.5), runs half the oval to finish
-    // indoor 200m: full lap
-    // 400m: full lap(s)
-    if (venueType === 'outdoor' && eventMeters === 200) {
-      this.startT   = 0.5;
-      this.ovalFrac = 0.5;
-    } else {
-      this.startT   = 0.0;
-      this.ovalFrac = 1.0;
-    }
+    // For 200m: race starts halfway around the oval (back straight) so finish = t=1.0
+    // For 400m: race starts at t=0, runs totalLaps laps
+    this.startT   = (eventMeters === 200) ? 0.5 : 0.0;
+    this.ovalFrac = (eventMeters === 200) ? 0.5 : 1.0;
 
     this._resize();
   }
@@ -235,7 +233,7 @@ class RaceTrack {
     // Lane labels
     for (let l = 0; l < lanes; l++) {
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      ctx.font = '11px "Press Start 2P",monospace';
+      ctx.font = '11px "Bebas Neue",sans-serif';
       ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       ctx.fillText('LANE '+(l+1), 8, tTop + l*lH + lH/2);
     }
@@ -247,7 +245,7 @@ class RaceTrack {
       if (sx < 0 || sx > W) continue;
       ctx.beginPath(); ctx.moveTo(sx, tTop); ctx.lineTo(sx, tBot); ctx.stroke();
       if (m % 20 === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = '10px "Press Start 2P"';
+        ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = '10px "Barlow Condensed"';
         ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
         ctx.fillText(m+'m', sx, tTop-2);
       }
@@ -261,7 +259,7 @@ class RaceTrack {
       ctx.setLineDash([4,4]);
       ctx.beginPath(); ctx.moveTo(startSX, tTop); ctx.lineTo(startSX, tBot); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = 'bold 11px "Press Start 2P",monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = 'bold 11px "Bebas Neue",sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillText('START', startSX, tTop-2);
     }
@@ -270,7 +268,7 @@ class RaceTrack {
     const finSX = WORLD - camX;
     if (finSX > -10 && finSX < W+10) {
       this._checker(ctx, finSX-4, tTop, 8, tBot-tTop, 12);
-      ctx.fillStyle = 'white'; ctx.font = 'bold 13px "Press Start 2P",monospace';
+      ctx.fillStyle = 'white'; ctx.font = 'bold 13px "Bebas Neue",sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillText('FINISH', finSX, tTop-3);
     }
@@ -290,47 +288,31 @@ class RaceTrack {
 
   // ══════════════════════════════════════════════════════
   //  OVAL RACE  (200m / 400m)
-  //  Camera follows the player — only the nearby track section is visible.
+  //  Full top-down view. No scrolling — whole track visible.
   // ══════════════════════════════════════════════════════
   _drawOval(progress, runners) {
     const ctx = this.ctx, W = this.W, H = this.H, cfg = this.cfg;
-
-    // ── World geometry ──
-    const WORLD_SCALE = this.venueType === 'indoor' ? 2.8 : 3.4;
-    const baseW = W * WORLD_SCALE, baseH = H * WORLD_SCALE;
-    const geo = calcGeo(baseW, baseH, this.venueType, 80);
+    const geo = calcGeo(W, H, this.venueType, 56);
     const { cx, cy, innerR, outerR, S, lanes, laneW, laneRadii } = geo;
 
-    // ── Camera: follow player, keep them at screen centre ──
-    // Find player's world position
-    const playerLaneIdx = Math.max(0, Math.min(runners.find(r=>r.isPlayer)?.lane ?? 0, lanes-1));
-    const playerLaneR   = (laneRadii[playerLaneIdx] + laneRadii[playerLaneIdx+1]) / 2;
-    const playerOvalT   = (this.startT + progress * this.ovalFrac * this.totalLaps) % 1;
-    const playerPos     = ovalPos(playerOvalT, cx, cy, playerLaneR, S);
+    // Background
+    this._bgOval(ctx, W, H, geo);
 
-    // Camera offset: shift world so player is at screen centre
-    const camOffX = W / 2 - playerPos.x;
-    const camOffY = H / 2 - playerPos.y;
-
-    // ── Draw world (translated) ──
-    ctx.save();
-    ctx.translate(camOffX, camOffY);
-
-    // Background — fill entire visible area in world space
+    // Grass fill (full background under track)
     ctx.fillStyle = cfg.infield;
-    ctx.fillRect(-camOffX, -camOffY, W, H);
+    ctx.fillRect(0, 0, W, H);
 
     // Track: outer dark band
     ctx.fillStyle = cfg.colorDark;
-    ovalPath(ctx, cx, cy, outerR + 8, S); ctx.fill();
+    ovalPath(ctx, cx, cy, outerR+6, S); ctx.fill();
 
     // Alternating lane fills
     for (let i = lanes; i >= 1; i--) {
-      ctx.fillStyle = i % 2 === 0 ? cfg.color : cfg.colorLight;
+      ctx.fillStyle = i%2===0 ? cfg.color : cfg.colorLight;
       ovalPath(ctx, cx, cy, laneRadii[i], S); ctx.fill();
     }
 
-    // Infield grass
+    // Infield
     const ig = ctx.createRadialGradient(cx, cy, 0, cx, cy, innerR);
     ig.addColorStop(0, cfg.infieldLine); ig.addColorStop(0.6, cfg.infield); ig.addColorStop(1, '#1a3d18');
     ovalPath(ctx, cx, cy, innerR, S);
@@ -338,192 +320,108 @@ class RaceTrack {
 
     // Infield text
     ctx.save();
-    ctx.font = `bold ${Math.round(innerR * 0.12)}px "Press Start 2P",monospace`;
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.font = 'bold 18px "Bebas Neue",sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('SPRINT', cx, cy - innerR * 0.06);
-    ctx.font = `${Math.round(innerR * 0.05)}px "Press Start 2P"`;
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
-    ctx.fillText(this.venueType === 'indoor' ? 'INDOOR ARENA' : 'STADIUM TRACK', cx, cy + innerR * 0.08);
+    ctx.fillText('SPRINT', cx, cy-8);
+    ctx.font = '9px "Barlow Condensed"'; ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillText(this.venueType==='indoor'?'INDOOR ARENA':'STADIUM TRACK', cx, cy+9);
     ctx.restore();
 
     // Lane lines
     for (let i = 0; i <= lanes; i++) {
-      ctx.strokeStyle = (i === 0 || i === lanes) ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.30)';
-      ctx.lineWidth   = (i === 0 || i === lanes) ? 2.8 : 1;
+      ctx.strokeStyle = (i===0||i===lanes) ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.30)';
+      ctx.lineWidth   = (i===0||i===lanes) ? 2.2 : 0.8;
       ovalPath(ctx, cx, cy, laneRadii[i], S); ctx.stroke();
     }
 
-    // Start/finish line(s)
-    const isOutdoor200 = this.venueType === 'outdoor' && this.eventMeters === 200;
+    // Start/finish line (right side, top of right arc = t=0)
+    // At t=0 the position is (cx+S, cy-innerR) for inner edge, (cx+S, cy-outerR) for outer
+    const sfX = cx + S;
+    const sfY1 = cy - outerR;
+    const sfY2 = cy - innerR;
+    // Checkerboard
+    const bh = (sfY2-sfY1)/8;
+    for (let row=0; row<8; row++) for (let col=0; col<2; col++) {
+      ctx.fillStyle = (row+col)%2===0 ? 'white' : '#111';
+      ctx.fillRect(sfX-3+col*3, sfY1+row*bh, 3, bh);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = 'bold 10px "Bebas Neue",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText('START/FINISH', sfX, sfY1-3);
 
-    if (isOutdoor200) {
-      // FINISH line: at t=0 (right side top of right arc)
-      const finX  = cx + S;
-      const finY1 = cy - outerR, finY2 = cy - innerR;
-      const fbh   = (finY2 - finY1) / 10;
-      for (let row = 0; row < 10; row++) for (let col = 0; col < 2; col++) {
-        ctx.fillStyle = (row + col) % 2 === 0 ? 'white' : '#111';
-        ctx.fillRect(finX - 4 + col * 4, finY1 + row * fbh, 4, fbh);
-      }
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Press Start 2P",monospace`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.fillText('FINISH', finX, finY1 - 4);
-
-      // START line: at t=0.5 (left side top of left arc)
-      // t=0.5 position on the outer/inner edge of the track
-      const startPosOuter = ovalPos(0.5, cx, cy, outerR, S);
-      const startPosInner = ovalPos(0.5, cx, cy, innerR, S);
-      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(startPosOuter.x, startPosOuter.y);
-      ctx.lineTo(startPosInner.x, startPosInner.y);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Press Start 2P",monospace`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.fillText('START', startPosOuter.x, startPosOuter.y - 4);
-
-      // Stagger marks for 200m (outer lanes start further ahead)
-      this._staggerMarks(ctx, cx, cy, innerR, S, laneRadii, lanes, laneW, 0.5);
-    } else {
-      // Normal start/finish at t=0 (right side)
-      const sfX  = cx + S;
-      const sfY1 = cy - outerR, sfY2 = cy - innerR;
-      const bh   = (sfY2 - sfY1) / 10;
-      for (let row = 0; row < 10; row++) for (let col = 0; col < 2; col++) {
-        ctx.fillStyle = (row + col) % 2 === 0 ? 'white' : '#111';
-        ctx.fillRect(sfX - 4 + col * 4, sfY1 + row * bh, 4, bh);
-      }
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Press Start 2P",monospace`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.fillText('START/FINISH', sfX, sfY1 - 4);
-
-      // Stagger marks for 400m
-      if (this.eventMeters === 400) {
-        this._staggerMarks(ctx, cx, cy, innerR, S, laneRadii, lanes, laneW, 0);
-      }
+    // Stagger marks for 400m (each outer lane starts ahead)
+    if (this.eventMeters === 400) {
+      this._staggerMarks(ctx, cx, cy, innerR, S, laneRadii, lanes, laneW);
     }
 
-    // Lane numbers (on bottom straight)
-    ctx.font = `bold ${Math.round(laneW * 0.5)}px "Press Start 2P",monospace`;
+    // Lane numbers on bottom straight
+    ctx.font = 'bold 10px "Bebas Neue",sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let i = 0; i < lanes; i++) {
-      const r = (laneRadii[i] + laneRadii[i + 1]) / 2;
+      const r = (laneRadii[i]+laneRadii[i+1])/2;
       const p = ovalPos(0.54, cx, cy, r, S);
-      ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      ctx.fillText(i + 1, p.x, p.y);
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
+      ctx.fillText(i+1, p.x, p.y);
     }
 
-    // ── Runners ──
+    // ── RUNNERS ──
+    // progress: 0..1 = fraction of total race distance (eventMeters * totalLaps)
+    // To get oval position (0..1) for a runner:
+    //   ovalT = startT + progress * totalLaps
+    //   Then wrap into 0..1 with % 1
     const runnerPositions = runners.map(r => {
-      const staggerT = r.staggerT || 0;
-      const ovalT    = (this.startT + staggerT + r.progress * this.ovalFrac * this.totalLaps) % 1;
-      const laneIdx  = Math.max(0, Math.min(r.lane, lanes - 1));
-      const laneR    = (laneRadii[laneIdx] + laneRadii[laneIdx + 1]) / 2;
-      const pos      = ovalPos(ovalT, cx, cy, laneR, S);
+      const ovalT = (this.startT + r.progress * this.ovalFrac * this.totalLaps) % 1;
+      // Lane radius: midpoint of this runner's lane
+      // Clamp lane index to valid range
+      const laneIdx = Math.max(0, Math.min(r.lane, lanes-1));
+      const laneR   = (laneRadii[laneIdx] + laneRadii[laneIdx+1]) / 2;
+      const pos     = ovalPos(ovalT, cx, cy, laneR, S);
       return { runner: r, x: pos.x, y: pos.y, tx: pos.tx, ty: pos.ty };
     });
 
-    // Sort by y so lower runners draw in front
+    // Sort by y so runners lower on screen appear in front
     runnerPositions.sort((a, b) => a.y - b.y);
 
-    // Sprite scale slightly larger since world is bigger
     runnerPositions.forEach(({ runner, x, y, tx, ty }) => {
-      this._spriteOval(ctx, runner, x, y, tx, ty, 1.0);
+      this._spriteOval(ctx, runner, x, y, tx, ty);
     });
 
-    // Glow ring on player (in world space)
-    const playerData = runnerPositions.find(d => d.runner.isPlayer);
-    if (playerData) {
+    // Glow ring + YOU label on player
+    const player = runnerPositions.find(d => d.runner.isPlayer);
+    if (player) {
       ctx.beginPath();
-      ctx.arc(playerData.x, playerData.y, 26, 0, Math.PI * 2);
+      ctx.arc(player.x, player.y, 20, 0, Math.PI*2);
       ctx.strokeStyle = 'rgba(255,208,96,0.7)';
-      ctx.lineWidth = 3; ctx.stroke();
+      ctx.lineWidth = 2.5; ctx.stroke();
+      this._youLabel(ctx, player.x, player.y - 26);
     }
-
-    ctx.restore(); // end world transform
-
-    // ── YOU label in screen space (always above centre) ──
-    this._youLabel(ctx, W / 2, H / 2 - 38);
-
-    // Minimap oval (top-right corner, small)
-    this._miniOvalMap(ctx, W, H, progress, runners);
 
     // Lap / progress HUD
     this._ovalHUD(ctx, W, H, progress);
   }
 
-  // ── Small oval minimap (top-right) ──────────────────────
-  _miniOvalMap(ctx, W, H, progress, runners) {
-    const mW = 140, mH = 80;
-    const mX = W - mW - 12, mY = 12;
-    // Background
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.beginPath(); ctx.roundRect(mX - 6, mY - 6, mW + 12, mH + 12, 6); ctx.fill();
-    // Mini geometry
-    const geo = calcGeo(mW, mH, this.venueType, 8);
-    const { cx, cy, innerR, outerR, S, lanes, laneRadii } = geo;
-    const mcx = mX + cx, mcy = mY + cy;
-    // Track surface
-    ctx.fillStyle = this.cfg.color;
-    ovalPath(ctx, mcx, mcy, outerR, S); ctx.fill();
-    // Infield
-    ctx.fillStyle = this.cfg.infield;
-    ovalPath(ctx, mcx, mcy, innerR, S); ctx.fill();
-    // Outer border
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1;
-    ovalPath(ctx, mcx, mcy, outerR, S); ctx.stroke();
-    // Start/finish tick(s)
-    ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5;
-    // Finish always at t=0 (right side)
-    ctx.beginPath();
-    ctx.moveTo(mcx + S, mcy - outerR);
-    ctx.lineTo(mcx + S, mcy - innerR);
-    ctx.stroke();
-    // For outdoor 200m also show start at t=0.5
-    if (this.venueType === 'outdoor' && this.eventMeters === 200) {
-      const sp = ovalPos(0.5, mcx, mcy, (outerR + innerR) / 2, S);
-      const perp = { x: -sp.ty * (outerR - innerR) / 2, y: sp.tx * (outerR - innerR) / 2 };
-      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-      ctx.beginPath();
-      ctx.moveTo(sp.x - perp.x, sp.y - perp.y);
-      ctx.lineTo(sp.x + perp.x, sp.y + perp.y);
-      ctx.stroke();
-    }
-    // Runner dots
-    runners.forEach(r => {
-      const staggerT = r.staggerT || 0;
-      const ovalT    = (this.startT + staggerT + r.progress * this.ovalFrac * this.totalLaps) % 1;
-      const laneIdx = Math.max(0, Math.min(r.lane, lanes - 1));
-      const laneR   = (laneRadii[laneIdx] + laneRadii[laneIdx + 1]) / 2;
-      const pos     = ovalPos(ovalT, mcx, mcy, laneR, S);
-      ctx.fillStyle = r.isPlayer ? '#FFD060' : (r.color || '#aaa');
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, r.isPlayer ? 4 : 2.5, 0, Math.PI * 2);
-      ctx.fill();
-      if (r.isPlayer) {
-        ctx.strokeStyle = 'white'; ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-    });
-  }
-
   // ── STAGGER MARKS ──────────────────────────────────────
-  _staggerMarks(ctx, cx, cy, innerR, S, laneRadii, lanes, laneW, baseT = 0) {
+  _staggerMarks(ctx, cx, cy, innerR, S, laneRadii, lanes, laneW) {
+    // Stagger for lane i = extra oval circumference vs lane 0
+    // Inner lane perimeter = 2*π*innerR + 4*S  (using half-S convention: 4*S not 2*S)
+    // Wait — our S is HALF the straight: straight length = 2*S
+    // Perimeter = π*R + 2*S + π*R + 2*S = 2*π*R + 4*S
     const innerPerim = 2*Math.PI*innerR + 4*S;
     ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 2;
 
     for (let i = 1; i < lanes; i++) {
-      const laneR     = (laneRadii[i]+laneRadii[i+1])/2;
+      const laneR   = (laneRadii[i]+laneRadii[i+1])/2;
       const lanePerim = 2*Math.PI*laneR + 4*S;
+      // Fraction ahead of start line for this lane's start position
       const staggerFrac = (lanePerim - innerPerim) / lanePerim;
       if (staggerFrac <= 0) continue;
 
-      const pos = ovalPos((baseT + staggerFrac) % 1, cx, cy, laneR, S);
-      const px = -pos.ty, py = pos.tx;
+      // The stagger mark sits at ovalT = staggerFrac on this lane
+      const pos = ovalPos(staggerFrac % 1, cx, cy, laneR, S);
+      // Draw a short perpendicular line across the lane
+      const px = -pos.ty, py = pos.tx; // perpendicular
       ctx.beginPath();
       ctx.moveTo(pos.x + px*laneW*0.55, pos.y + py*laneW*0.55);
       ctx.lineTo(pos.x - px*laneW*0.55, pos.y - py*laneW*0.55);
@@ -539,10 +437,11 @@ class RaceTrack {
       drawOpponent(ctx, x, y, runner.frame, runner.color, runner.skinTone, scale);
   }
 
-  _spriteOval(ctx, runner, x, y, tx, ty, scaleOverride) {
-    const scale = scaleOverride !== undefined ? scaleOverride : 0.68;
-    // Keep sprite upright — just flip horizontally based on movement direction
+  _spriteOval(ctx, runner, x, y, tx, ty) {
+    // Keep sprite upright — just flip horizontally based on movement direction.
+    // Rotating on curves makes sprites invisible (rotated 90° = 1px thin sliver).
     const facingRight = tx >= 0;
+    const scale = 0.68;
     if (runner.isPlayer)
       drawAthlete(ctx, ATHLETES[runner.athleteIdx||0], x, y, runner.frame, facingRight, scale);
     else
@@ -551,7 +450,7 @@ class RaceTrack {
 
   _youLabel(ctx, x, y) {
     ctx.save();
-    ctx.font = 'bold 12px "Press Start 2P",monospace';
+    ctx.font = 'bold 12px "Bebas Neue",sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 3;
     ctx.strokeText('YOU ▼', x, y);
@@ -583,7 +482,7 @@ class RaceTrack {
       ctx.beginPath(); ctx.arc(dx,dy,r.isPlayer?5:3,0,Math.PI*2); ctx.fill();
       if(r.isPlayer){ctx.strokeStyle='white';ctx.lineWidth=1.2;ctx.stroke();}
     });
-    ctx.fillStyle='rgba(255,255,255,0.38)'; ctx.font='9px "Press Start 2P"';
+    ctx.fillStyle='rgba(255,255,255,0.38)'; ctx.font='9px "Barlow Condensed"';
     ctx.textAlign='center'; ctx.textBaseline='top';
     ctx.fillText(this.eventMeters+'m', mX+mW/2, mY+4);
   }
@@ -596,14 +495,14 @@ class RaceTrack {
     ctx.beginPath(); ctx.roundRect(bX-8, bY-20, bW+16, bH+36, 5); ctx.fill();
     ctx.fillStyle = this.cfg.colorDark; ctx.fillRect(bX, bY, bW, bH);
     ctx.fillStyle = '#FFD060';          ctx.fillRect(bX, bY, lapFrac*bW, bH);
-    ctx.fillStyle = 'white'; ctx.font = 'bold 11px "Press Start 2P",monospace';
+    ctx.fillStyle = 'white'; ctx.font = 'bold 11px "Bebas Neue",sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
     if (this.totalLaps > 1) {
       ctx.fillText('LAP '+lap+' / '+this.totalLaps, bX, bY-1);
     } else {
       ctx.fillText(this.eventMeters+'m', bX, bY-1);
     }
-    ctx.fillStyle='rgba(255,255,255,0.38)'; ctx.font='9px "Press Start 2P"';
+    ctx.fillStyle='rgba(255,255,255,0.38)'; ctx.font='9px "Barlow Condensed"';
     ctx.textBaseline='top';
     ctx.fillText(Math.round(lapFrac*100)+'% complete', bX, bY+bH+3);
   }

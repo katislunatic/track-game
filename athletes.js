@@ -24,94 +24,92 @@ const ATHLETES = [
   }
 ];
 
-// Retro Bowl-style: chunky blocky shapes, no smooth curves, pixel-art feel
-// All drawing is relative to (0,0) after translate, so transforms work correctly
+// Retro Bowl-style sprite: chunky rectangles, simple animation.
+// x,y = centre-bottom (feet). All drawing relative to 0,0 after translate.
 
 function drawAthlete(ctx, athlete, x, y, frame, facingRight = true, scale = 1) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(facingRight ? scale : -scale, scale);
 
-  const f   = frame % 8;
-  const alt = f < 4;
+  const f      = frame % 8;
+  const legSwing  = Math.sin(f / 8 * Math.PI * 2);
+  const armSwing  = -legSwing;
+  const bounce    = Math.abs(legSwing) * 3;
 
-  const sk = athlete.skinTone  || '#C8956C';
-  const ki = athlete.kitColor  || '#E8A800';
-  const ac = athlete.kitAccent || '#9E6E00';
-  const ha = athlete.hairColor || '#1A1208';
-  const sh = '#111111';
+  const skin = athlete.skinTone  || '#C8956C';
+  const kit  = athlete.kitColor  || '#E8A800';
+  const acc  = athlete.kitAccent || '#9E6E00';
+  const hair = athlete.hairColor || '#1A1208';
 
-  // All coords are relative, centred at (0,0) = feet centre
-  // Sprite is ~20px wide, ~46px tall at scale=1
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 12, 3, 0, 0, Math.PI*2);
+  ctx.fill();
 
-  // ── SHADOW ──
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.fillRect(-8, -1, 16, 3);
+  // Back leg
+  ctx.save();
+  ctx.translate(0, -16 + bounce);
+  ctx.rotate(-legSwing * 0.55);
+  ctx.fillStyle = acc;
+  ctx.fillRect(-3, 0, 7, 14);
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-3, 13, 9, 4);
+  ctx.restore();
 
-  // ── LEGS ──
-  if (alt) {
-    // Left leg forward, right leg back
-    ctx.fillStyle = ac;
-    ctx.fillRect(-7, -18, 6, 10); // left thigh fwd
-    ctx.fillRect(-9, -10, 6,  8); // left shin fwd
-    ctx.fillStyle = ki;
-    ctx.fillRect( 1, -18, 6,  8); // right thigh back
-    ctx.fillRect( 3, -12, 6,  8); // right shin back
-    // shoes
-    ctx.fillStyle = sh;
-    ctx.fillRect(-10, -4, 8, 4);  // left shoe
-    ctx.fillRect(  3, -6, 8, 4);  // right shoe
-  } else {
-    // Right leg forward, left leg back
-    ctx.fillStyle = ki;
-    ctx.fillRect( 1, -18, 6, 10); // right thigh fwd
-    ctx.fillRect( 3, -10, 6,  8); // right shin fwd
-    ctx.fillStyle = ac;
-    ctx.fillRect(-7, -18, 6,  8); // left thigh back
-    ctx.fillRect(-9, -12, 6,  8); // left shin back
-    // shoes
-    ctx.fillStyle = sh;
-    ctx.fillRect( 3,  -4, 8, 4);  // right shoe
-    ctx.fillRect(-10, -6, 8, 4);  // left shoe
-  }
+  // Front leg
+  ctx.save();
+  ctx.translate(0, -16 + bounce);
+  ctx.rotate(legSwing * 0.55);
+  ctx.fillStyle = kit;
+  ctx.fillRect(-3, 0, 7, 14);
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-3, 13, 9, 4);
+  ctx.restore();
 
-  // ── BODY ──
-  ctx.fillStyle = ki;
-  ctx.fillRect(-8, -36, 16, 18);
+  // Body
+  ctx.fillStyle = kit;
+  ctx.beginPath();
+  ctx.roundRect(-8, -34+bounce, 16, 18, 3);
+  ctx.fill();
 
-  // Bib (white patch on chest)
+  // Bib
   ctx.fillStyle = '#F5E6C8';
-  ctx.fillRect(-5, -34, 10, 10);
-  ctx.fillStyle = ac;
-  ctx.font = 'bold 7px monospace';
+  ctx.fillRect(-4, -32+bounce, 8, 9);
+  ctx.fillStyle = acc;
+  ctx.font = 'bold 5px monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText((athlete.id ?? 0) + 1, 0, -29);
+  ctx.fillText((athlete.id ?? 0) + 1, 0, -28+bounce);
 
-  // ── ARMS ──
-  if (alt) {
-    // right arm up-forward, left arm down-back
-    ctx.fillStyle = sk;
-    ctx.fillRect( 8, -38, 5, 10); // right arm up
-    ctx.fillRect(-13, -28, 5, 10); // left arm down
-  } else {
-    // left arm up-forward, right arm down-back
-    ctx.fillStyle = sk;
-    ctx.fillRect(-13, -38, 5, 10); // left arm up
-    ctx.fillRect(  8, -28, 5, 10); // right arm down
-  }
+  // Back arm
+  ctx.save();
+  ctx.translate(-5, -30+bounce);
+  ctx.rotate(armSwing * 0.7 + 0.3);
+  ctx.fillStyle = skin;
+  ctx.fillRect(-2, 0, 4, 11);
+  ctx.restore();
 
-  // ── HEAD ──
-  // Hair (big blocky square — Retro Bowl style)
-  ctx.fillStyle = ha;
-  ctx.fillRect(-7, -50, 14, 8);
-  // Face
-  ctx.fillStyle = sk;
-  ctx.fillRect(-6, -44, 12, 10);
-  // Eyes (two dark dots)
-  ctx.fillStyle = sh;
-  ctx.fillRect(-4, -42, 2, 2);
-  ctx.fillRect( 2, -42, 2, 2);
+  // Front arm
+  ctx.save();
+  ctx.translate(5, -30+bounce);
+  ctx.rotate(-armSwing * 0.7 - 0.3);
+  ctx.fillStyle = skin;
+  ctx.fillRect(-2, 0, 4, 11);
+  ctx.restore();
+
+  // Head
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.arc(0, -42+bounce, 7, 0, Math.PI*2);
+  ctx.fill();
+
+  // Hair (blocky top — Retro Bowl style)
+  ctx.fillStyle = hair;
+  ctx.beginPath();
+  ctx.arc(0, -44+bounce, 6, Math.PI, 0);
+  ctx.fill();
 
   ctx.restore();
 }
@@ -121,45 +119,36 @@ function drawAthleteStanding(ctx, athlete, x, y, scale = 1) {
   ctx.translate(x, y);
   ctx.scale(scale, scale);
 
-  const sk = athlete.skinTone  || '#C8956C';
-  const ki = athlete.kitColor  || '#E8A800';
-  const ac = athlete.kitAccent || '#9E6E00';
-  const ha = athlete.hairColor || '#1A1208';
-  const sh = '#111111';
+  const skin = athlete.skinTone  || '#C8956C';
+  const kit  = athlete.kitColor  || '#E8A800';
+  const acc  = athlete.kitAccent || '#9E6E00';
+  const hair = athlete.hairColor || '#1A1208';
 
-  // Legs straight
-  ctx.fillStyle = ac;
-  ctx.fillRect(-8, -18, 6, 18);
-  ctx.fillStyle = ki;
-  ctx.fillRect( 2, -18, 6, 18);
-  ctx.fillStyle = sh;
-  ctx.fillRect(-9,  -2, 8, 4);
-  ctx.fillRect( 1,  -2, 8, 4);
+  // Legs
+  ctx.fillStyle = acc;  ctx.fillRect(-8, -18, 6, 18);
+  ctx.fillStyle = kit;  ctx.fillRect( 2, -18, 6, 18);
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-9, -2, 8, 4);
+  ctx.fillRect( 1, -2, 8, 4);
 
   // Body
-  ctx.fillStyle = ki;
-  ctx.fillRect(-8, -36, 16, 18);
-  ctx.fillStyle = '#F5E6C8';
-  ctx.fillRect(-5, -34, 10, 10);
-  ctx.fillStyle = ac;
-  ctx.font = 'bold 7px monospace';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText((athlete.id ?? 0) + 1, 0, -29);
+  ctx.fillStyle = kit;
+  ctx.beginPath(); ctx.roundRect(-9, -36, 18, 18, 3); ctx.fill();
+  ctx.fillStyle = '#F5E6C8'; ctx.fillRect(-4, -34, 8, 9);
+  ctx.fillStyle = acc;
+  ctx.font = 'bold 5px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText((athlete.id ?? 0) + 1, 0, -30);
 
-  // Arms at sides
-  ctx.fillStyle = sk;
-  ctx.fillRect(-13, -34, 5, 14);
-  ctx.fillRect(  8, -34, 5, 14);
+  // Arms
+  ctx.fillStyle = skin;
+  ctx.fillRect(-14, -34, 5, 14);
+  ctx.fillRect(  9, -34, 5, 14);
 
   // Head
-  ctx.fillStyle = ha;
-  ctx.fillRect(-7, -50, 14, 8);
-  ctx.fillStyle = sk;
-  ctx.fillRect(-6, -44, 12, 10);
-  ctx.fillStyle = sh;
-  ctx.fillRect(-4, -42, 2, 2);
-  ctx.fillRect( 2, -42, 2, 2);
+  ctx.fillStyle = skin;
+  ctx.beginPath(); ctx.arc(0, -44, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = hair;
+  ctx.beginPath(); ctx.arc(0, -47, 7, Math.PI, 0); ctx.fill();
 
   ctx.restore();
 }
@@ -177,8 +166,8 @@ function drawOpponent(ctx, x, y, frame, color, skinTone, scale = 1) {
 
 function _shade(hex, amt) {
   const n = parseInt((hex||'#888888').replace('#',''), 16);
-  const r = Math.max(0, Math.min(255, (n >> 16) + amt));
-  const g = Math.max(0, Math.min(255, ((n >> 8) & 0xff) + amt));
-  const b = Math.max(0, Math.min(255, (n & 0xff) + amt));
-  return '#' + ((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
+  const r = Math.max(0, Math.min(255, (n>>16)+amt));
+  const g = Math.max(0, Math.min(255, ((n>>8)&0xff)+amt));
+  const b = Math.max(0, Math.min(255, (n&0xff)+amt));
+  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');
 }

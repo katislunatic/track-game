@@ -139,7 +139,7 @@ function drawTrackPreview(canvas, venueType) {
 
   // Label
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.font = 'bold 10px "Barlow Condensed",sans-serif';
+  ctx.font = 'bold 10px "Press Start 2P",monospace';
   ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   ctx.fillText(cfg.label, cx, H-5);
 }
@@ -235,7 +235,7 @@ class RaceTrack {
     // Lane labels
     for (let l = 0; l < lanes; l++) {
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      ctx.font = '11px "Bebas Neue",sans-serif';
+      ctx.font = '11px "Press Start 2P",monospace';
       ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       ctx.fillText('LANE '+(l+1), 8, tTop + l*lH + lH/2);
     }
@@ -247,7 +247,7 @@ class RaceTrack {
       if (sx < 0 || sx > W) continue;
       ctx.beginPath(); ctx.moveTo(sx, tTop); ctx.lineTo(sx, tBot); ctx.stroke();
       if (m % 20 === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = '10px "Barlow Condensed"';
+        ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = '10px "Press Start 2P"';
         ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
         ctx.fillText(m+'m', sx, tTop-2);
       }
@@ -261,7 +261,7 @@ class RaceTrack {
       ctx.setLineDash([4,4]);
       ctx.beginPath(); ctx.moveTo(startSX, tTop); ctx.lineTo(startSX, tBot); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = 'bold 11px "Bebas Neue",sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = 'bold 11px "Press Start 2P",monospace';
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillText('START', startSX, tTop-2);
     }
@@ -270,7 +270,7 @@ class RaceTrack {
     const finSX = WORLD - camX;
     if (finSX > -10 && finSX < W+10) {
       this._checker(ctx, finSX-4, tTop, 8, tBot-tTop, 12);
-      ctx.fillStyle = 'white'; ctx.font = 'bold 13px "Bebas Neue",sans-serif';
+      ctx.fillStyle = 'white'; ctx.font = 'bold 13px "Press Start 2P",monospace';
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillText('FINISH', finSX, tTop-3);
     }
@@ -338,11 +338,11 @@ class RaceTrack {
 
     // Infield text
     ctx.save();
-    ctx.font = `bold ${Math.round(innerR * 0.12)}px "Bebas Neue",sans-serif`;
+    ctx.font = `bold ${Math.round(innerR * 0.12)}px "Press Start 2P",monospace`;
     ctx.fillStyle = 'rgba(255,255,255,0.05)';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('SPRINT', cx, cy - innerR * 0.06);
-    ctx.font = `${Math.round(innerR * 0.05)}px "Barlow Condensed"`;
+    ctx.font = `${Math.round(innerR * 0.05)}px "Press Start 2P"`;
     ctx.fillStyle = 'rgba(255,255,255,0.04)';
     ctx.fillText(this.venueType === 'indoor' ? 'INDOOR ARENA' : 'STADIUM TRACK', cx, cy + innerR * 0.08);
     ctx.restore();
@@ -367,7 +367,7 @@ class RaceTrack {
         ctx.fillRect(finX - 4 + col * 4, finY1 + row * fbh, 4, fbh);
       }
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Bebas Neue",sans-serif`;
+      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Press Start 2P",monospace`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillText('FINISH', finX, finY1 - 4);
 
@@ -381,7 +381,7 @@ class RaceTrack {
       ctx.lineTo(startPosInner.x, startPosInner.y);
       ctx.stroke();
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Bebas Neue",sans-serif`;
+      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Press Start 2P",monospace`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillText('START', startPosOuter.x, startPosOuter.y - 4);
 
@@ -397,7 +397,7 @@ class RaceTrack {
         ctx.fillRect(sfX - 4 + col * 4, sfY1 + row * bh, 4, bh);
       }
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Bebas Neue",sans-serif`;
+      ctx.font = `bold ${Math.round(laneW * 0.55)}px "Press Start 2P",monospace`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillText('START/FINISH', sfX, sfY1 - 4);
 
@@ -408,7 +408,7 @@ class RaceTrack {
     }
 
     // Lane numbers (on bottom straight)
-    ctx.font = `bold ${Math.round(laneW * 0.5)}px "Bebas Neue",sans-serif`;
+    ctx.font = `bold ${Math.round(laneW * 0.5)}px "Press Start 2P",monospace`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let i = 0; i < lanes; i++) {
       const r = (laneRadii[i] + laneRadii[i + 1]) / 2;
@@ -553,7 +553,7 @@ class RaceTrack {
 
   _youLabel(ctx, x, y) {
     ctx.save();
-    ctx.font = 'bold 12px "Bebas Neue",sans-serif';
+    ctx.font = 'bold 12px "Press Start 2P",monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 3;
     ctx.strokeText('YOU ▼', x, y);
@@ -585,7 +585,7 @@ class RaceTrack {
       ctx.beginPath(); ctx.arc(dx,dy,r.isPlayer?5:3,0,Math.PI*2); ctx.fill();
       if(r.isPlayer){ctx.strokeStyle='white';ctx.lineWidth=1.2;ctx.stroke();}
     });
-    ctx.fillStyle='rgba(255,255,255,0.38)'; ctx.font='9px "Barlow Condensed"';
+    ctx.fillStyle='rgba(255,255,255,0.38)'; ctx.font='9px "Press Start 2P"';
     ctx.textAlign='center'; ctx.textBaseline='top';
     ctx.fillText(this.eventMeters+'m', mX+mW/2, mY+4);
   }
@@ -598,14 +598,14 @@ class RaceTrack {
     ctx.beginPath(); ctx.roundRect(bX-8, bY-20, bW+16, bH+36, 5); ctx.fill();
     ctx.fillStyle = this.cfg.colorDark; ctx.fillRect(bX, bY, bW, bH);
     ctx.fillStyle = '#FFD060';          ctx.fillRect(bX, bY, lapFrac*bW, bH);
-    ctx.fillStyle = 'white'; ctx.font = 'bold 11px "Bebas Neue",sans-serif';
+    ctx.fillStyle = 'white'; ctx.font = 'bold 11px "Press Start 2P",monospace';
     ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
     if (this.totalLaps > 1) {
       ctx.fillText('LAP '+lap+' / '+this.totalLaps, bX, bY-1);
     } else {
       ctx.fillText(this.eventMeters+'m', bX, bY-1);
     }
-    ctx.fillStyle='rgba(255,255,255,0.38)'; ctx.font='9px "Barlow Condensed"';
+    ctx.fillStyle='rgba(255,255,255,0.38)'; ctx.font='9px "Press Start 2P"';
     ctx.textBaseline='top';
     ctx.fillText(Math.round(lapFrac*100)+'% complete', bX, bY+bH+3);
   }

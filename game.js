@@ -189,20 +189,20 @@ function showIntroduction() {
   const playerLane = Math.floor(laneCount / 2) + 1; // 1-indexed for display
 
   phaseEl.innerHTML = `
-    <div style="font-size:1rem;letter-spacing:.25em;color:var(--muted);margin-bottom:8px">YOU ARE RACING AS</div>
-    <div style="font-size:4.5rem;color:${athlete.color};line-height:1;margin-bottom:4px">${athlete.name}</div>
-    <div style="font-size:1rem;letter-spacing:.2em;color:var(--muted);margin-bottom:20px">
-      LANE <span style="color:white;font-size:2rem">${playerLane}</span> of ${laneCount}
+    <div style="font-size:.5rem;letter-spacing:.15em;color:var(--muted);margin-bottom:12px;font-family:'Press Start 2P',monospace">YOU ARE RACING AS</div>
+    <div style="font-size:2.2rem;color:${athlete.color};line-height:1.2;margin-bottom:8px;font-family:'Press Start 2P',monospace;text-shadow:3px 3px 0px var(--brown-dark)">${athlete.name}</div>
+    <div style="font-size:.5rem;letter-spacing:.12em;color:var(--muted);margin-bottom:20px;font-family:'Press Start 2P',monospace">
+      LANE <span style="color:var(--cream);font-size:.9rem;font-family:'Press Start 2P',monospace">${playerLane}</span> OF ${laneCount}
     </div>
-    <div style="display:flex;gap:24px;justify-content:center;margin-bottom:18px;font-size:.85rem;letter-spacing:.12em">
-      <div><span style="color:var(--muted)">SPEED</span><br>${'█'.repeat(Math.round(athlete.topSpeed*5))}${'░'.repeat(5-Math.round(athlete.topSpeed*5))}</div>
-      <div><span style="color:var(--muted)">ACCEL</span><br>${'█'.repeat(Math.round(athlete.acceleration*5))}${'░'.repeat(5-Math.round(athlete.acceleration*5))}</div>
-      <div><span style="color:var(--muted)">STAMINA</span><br>${'█'.repeat(Math.round(athlete.stamina*5))}${'░'.repeat(5-Math.round(athlete.stamina*5))}</div>
+    <div style="display:flex;gap:20px;justify-content:center;margin-bottom:18px;font-size:.38rem;letter-spacing:.08em;font-family:'Press Start 2P',monospace">
+      <div><span style="color:var(--muted)">SPEED</span><br><span style="color:var(--gold)">${'█'.repeat(Math.round(athlete.topSpeed*5))}${'░'.repeat(5-Math.round(athlete.topSpeed*5))}</span></div>
+      <div><span style="color:var(--muted)">ACCEL</span><br><span style="color:var(--gold)">${'█'.repeat(Math.round(athlete.acceleration*5))}${'░'.repeat(5-Math.round(athlete.acceleration*5))}</span></div>
+      <div><span style="color:var(--muted)">STAM</span><br><span style="color:var(--gold)">${'█'.repeat(Math.round(athlete.stamina*5))}${'░'.repeat(5-Math.round(athlete.stamina*5))}</span></div>
     </div>
-    <div style="font-size:.9rem;letter-spacing:.15em;color:var(--gold)">
+    <div style="font-size:.45rem;letter-spacing:.1em;color:var(--gold);font-family:'Press Start 2P',monospace">
       ${Game.venue.toUpperCase()} · ${Game.eventMeters}m${Game.venue==='indoor'&&Game.eventMeters===400?' · 2 LAPS':''}
     </div>
-    <div style="font-size:.75rem;letter-spacing:.15em;color:var(--muted);margin-top:24px;animation:phasePulse .8s infinite alternate">
+    <div style="font-size:.4rem;letter-spacing:.1em;color:var(--muted);margin-top:24px;animation:phasePulse .8s infinite alternate;font-family:'Press Start 2P',monospace">
       GET READY...
     </div>
   `;

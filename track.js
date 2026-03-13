@@ -419,10 +419,11 @@ class RaceTrack {
 
     // ── Runners ──
     const runnerPositions = runners.map(r => {
-      const ovalT   = (this.startT + r.progress * this.ovalFrac * this.totalLaps) % 1;
-      const laneIdx = Math.max(0, Math.min(r.lane, lanes - 1));
-      const laneR   = (laneRadii[laneIdx] + laneRadii[laneIdx + 1]) / 2;
-      const pos     = ovalPos(ovalT, cx, cy, laneR, S);
+      const staggerT = r.staggerT || 0;
+      const ovalT    = (this.startT + staggerT + r.progress * this.ovalFrac * this.totalLaps) % 1;
+      const laneIdx  = Math.max(0, Math.min(r.lane, lanes - 1));
+      const laneR    = (laneRadii[laneIdx] + laneRadii[laneIdx + 1]) / 2;
+      const pos      = ovalPos(ovalT, cx, cy, laneR, S);
       return { runner: r, x: pos.x, y: pos.y, tx: pos.tx, ty: pos.ty };
     });
 
@@ -494,7 +495,8 @@ class RaceTrack {
     }
     // Runner dots
     runners.forEach(r => {
-      const ovalT   = (this.startT + r.progress * this.ovalFrac * this.totalLaps) % 1;
+      const staggerT = r.staggerT || 0;
+      const ovalT    = (this.startT + staggerT + r.progress * this.ovalFrac * this.totalLaps) % 1;
       const laneIdx = Math.max(0, Math.min(r.lane, lanes - 1));
       const laneR   = (laneRadii[laneIdx] + laneRadii[laneIdx + 1]) / 2;
       const pos     = ovalPos(ovalT, mcx, mcy, laneR, S);

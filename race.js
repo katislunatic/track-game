@@ -77,7 +77,10 @@ class RaceEngine {
   // Calculate per-lane stagger as an oval-T offset (visual only)
   // Outer lanes start further around the oval, but all run the same progress 0→1
   _staggerOvalT(laneIdx) {
-    const isStaggered = (this.eventMeters === 200 || this.eventMeters === 400);
+    // Only outdoor 200m and 400m have staggered starts (lanes on different start marks).
+    // Indoor 200m is a full lap from t=0 — no stagger needed.
+    const isStaggered = (this.eventMeters === 400) ||
+                        (this.eventMeters === 200 && this.venueType === 'outdoor');
     if (!isStaggered) return 0;
     // Real stagger: each lane out adds 2π * laneWidth in metres
     // laneWidth ≈ 1.22m real world

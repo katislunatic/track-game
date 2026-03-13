@@ -74,17 +74,20 @@ function calcGeo(W, H, venueType, margin) {
   const avW    = W - margin*2;
   const avH    = H - margin*2;
 
-  // Total oval width = 2*outerR + 2*S  (outerR = R + lanes*laneW... wait)
-  // outerR is the OUTER radius.  We want the oval to fill the available space.
-  // Oval width = 2*(outerR + S),  height = 2*outerR
-  // So: outerR = avH/2,   S = avW/2 - outerR
   let outerR = avH / 2;
   let S      = avW/2 - outerR;
-  if (S < outerR * 0.15) {
-    // Screen too square — shrink everything proportionally
-    const scale = avW / (avH * 1.6);
-    outerR = (avH / 2) * scale;
-    S      = avW/2 - outerR;
+
+  // Indoor tracks are nearly circular (short straights ~35m vs 84m outdoor).
+  // Clamp S to a small fraction of outerR for indoor.
+  if (venueType === 'indoor') {
+    const maxS = outerR * 0.28; // very round
+    if (S > maxS) S = maxS;
+  } else {
+    if (S < outerR * 0.15) {
+      const scale = avW / (avH * 1.6);
+      outerR = (avH / 2) * scale;
+      S      = avW/2 - outerR;
+    }
   }
   if (S < 10) S = 10;
 
@@ -292,9 +295,10 @@ class RaceTrack {
   _drawOval(progress, runners) {
     const ctx = this.ctx, W = this.W, H = this.H, cfg = this.cfg;
 
-    // ── World geometry: large oval so there's plenty of detail ──
-    // We size it so the straight segments are long and curves are roomy.
-    const WORLD_SCALE = 2.8; // how much bigger world-oval is vs screen
+    // ── World geometry ──
+    // Indoor = 200m perimeter (half outdoor), so world is half the size.
+    // Outdoor = 400m perimeter. Indoor also has shorter straights (rounder shape).
+    const WORLD_SCALE = this.venueType === 'indoor' ? 1.5 : 2.8;
     const baseW = W * WORLD_SCALE, baseH = H * WORLD_SCALE;
     const geo = calcGeo(baseW, baseH, this.venueType, 80);
     const { cx, cy, innerR, outerR, S, lanes, laneW, laneRadii } = geo;

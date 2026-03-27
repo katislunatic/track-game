@@ -3,136 +3,209 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>RETRO RUN — Track & Field</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>RETRO BLAZE — Track & Field</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- SCREENS -->
+  <!-- ══ INTRO SCREEN ══ -->
   <div id="screen-intro" class="screen active">
     <div class="intro-bg">
-      <div class="track-lines"></div>
-      <div class="scanlines"></div>
+      <div class="intro-grid"></div>
+      <div class="intro-scanlines"></div>
+      <!-- Animated flame particles -->
+      <div class="flame-particles" id="flame-particles"></div>
     </div>
-    <div class="intro-content">
-      <div class="logo-badge">RETRO RUN</div>
-      <h1 class="game-title">TRACK<br>&amp; FIELD</h1>
-      <p class="game-subtitle">Hit the track. Beat the clock.</p>
-      <button class="btn-primary" id="btn-start">RACE NOW</button>
-      <div class="intro-footer">PRESS SPACE TO START <span>█</span></div>
+
+    <div class="intro-left">
+      <div class="logo-badge">
+        <span class="logo-dot"></span> ARCADE SPORTS
+      </div>
+      <h1 class="game-title">
+        <span class="title-retro">RETRO</span>
+        <span class="title-blaze">BLAZE</span>
+      </h1>
+      <div class="title-underline"></div>
+      <p class="game-subtitle">
+        Hit the track.<br>
+        Beat the clock.<br>
+        <span class="subtitle-accent">Feel the blaze.</span>
+      </p>
+      <button class="btn-primary" id="btn-start">
+        <span class="btn-icon">▶</span> RACE NOW
+      </button>
+      <div class="intro-footer">
+        <span class="blink-text">PRESS SPACE TO START █</span><br>
+        USE ← → OR MASH SPACE TO RUN
+      </div>
     </div>
-    <div class="intro-runner" id="intro-runner">
-      <canvas id="intro-canvas" width="200" height="260"></canvas>
+
+    <div class="intro-right">
+      <div class="runner-glow"></div>
+      <canvas id="intro-canvas" width="220" height="280"></canvas>
     </div>
   </div>
 
+  <!-- ══ VENUE SELECT ══ -->
   <div id="screen-select" class="screen">
-    <div class="select-header">
+    <div class="screen-header">
       <button class="btn-back" id="btn-back-select">← BACK</button>
       <h2 class="section-title">CHOOSE YOUR MEET</h2>
+      <div class="header-decoration"></div>
     </div>
     <div class="venue-cards">
       <div class="venue-card" data-venue="indoor">
-        <div class="venue-art indoor-art">
-          <canvas id="preview-indoor" width="340" height="200"></canvas>
+        <div class="venue-art">
+          <canvas id="preview-indoor" width="380" height="190"></canvas>
+          <div class="venue-art-overlay indoor-overlay"></div>
         </div>
         <div class="venue-info">
-          <span class="venue-tag">INDOOR</span>
+          <div class="venue-tag indoor-tag">⬡ INDOOR</div>
           <h3 class="venue-name">THE OVAL DOME</h3>
-          <p class="venue-desc">Banked curves. Tight field. Maximum intensity.</p>
+          <p class="venue-desc">Banked curves. Tight field. Controlled fury.</p>
           <div class="venue-events">
             <span class="event-chip">60m</span>
             <span class="event-chip">200m</span>
-            <span class="event-chip">400m × 2 laps</span>
+            <span class="event-chip">400m × 2</span>
           </div>
         </div>
+        <div class="venue-select-hint">CLICK TO SELECT →</div>
       </div>
       <div class="venue-card" data-venue="outdoor">
-        <div class="venue-art outdoor-art">
-          <canvas id="preview-outdoor" width="340" height="200"></canvas>
+        <div class="venue-art">
+          <canvas id="preview-outdoor" width="380" height="190"></canvas>
+          <div class="venue-art-overlay outdoor-overlay"></div>
         </div>
         <div class="venue-info">
-          <span class="venue-tag">OUTDOOR</span>
+          <div class="venue-tag outdoor-tag">◈ OUTDOOR</div>
           <h3 class="venue-name">STADIUM TRACK</h3>
           <p class="venue-desc">Open air. Full oval. One lap glory.</p>
           <div class="venue-events">
             <span class="event-chip">100m</span>
             <span class="event-chip">200m</span>
-            <span class="event-chip">400m × 1 lap</span>
+            <span class="event-chip">400m × 1</span>
+          </div>
+        </div>
+        <div class="venue-select-hint">CLICK TO SELECT →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ EVENT SELECT ══ -->
+  <div id="screen-event" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" id="btn-back-event">← BACK</button>
+      <h2 class="section-title" id="event-screen-title">SELECT EVENT</h2>
+      <div class="header-decoration"></div>
+    </div>
+
+    <div class="event-section">
+      <div class="section-label">▸ DISTANCE</div>
+      <div class="event-buttons" id="event-buttons"></div>
+    </div>
+
+    <div class="athlete-section">
+      <div class="section-label">▸ YOUR ATHLETE</div>
+      <div class="athlete-cards" id="athlete-cards">
+        <div class="athlete-card selected" data-athlete="0">
+          <canvas class="athlete-preview" width="70" height="90" data-idx="0"></canvas>
+          <span class="athlete-name">BOLT</span>
+          <div class="athlete-stats">
+            <div class="stat-row"><span class="stat-lbl">SPD</span><span class="stat-bar"><span class="stat-fill" style="width:100%"></span></span></div>
+            <div class="stat-row"><span class="stat-lbl">ACC</span><span class="stat-bar"><span class="stat-fill" style="width:78%"></span></span></div>
+            <div class="stat-row"><span class="stat-lbl">STM</span><span class="stat-bar"><span class="stat-fill" style="width:80%"></span></span></div>
+          </div>
+        </div>
+        <div class="athlete-card" data-athlete="1">
+          <canvas class="athlete-preview" width="70" height="90" data-idx="1"></canvas>
+          <span class="athlete-name">SWIFT</span>
+          <div class="athlete-stats">
+            <div class="stat-row"><span class="stat-lbl">SPD</span><span class="stat-bar"><span class="stat-fill" style="width:86%"></span></span></div>
+            <div class="stat-row"><span class="stat-lbl">ACC</span><span class="stat-bar"><span class="stat-fill" style="width:100%"></span></span></div>
+            <div class="stat-row"><span class="stat-lbl">STM</span><span class="stat-bar"><span class="stat-fill" style="width:92%"></span></span></div>
+          </div>
+        </div>
+        <div class="athlete-card" data-athlete="2">
+          <canvas class="athlete-preview" width="70" height="90" data-idx="2"></canvas>
+          <span class="athlete-name">TITAN</span>
+          <div class="athlete-stats">
+            <div class="stat-row"><span class="stat-lbl">SPD</span><span class="stat-bar"><span class="stat-fill" style="width:78%"></span></span></div>
+            <div class="stat-row"><span class="stat-lbl">ACC</span><span class="stat-bar"><span class="stat-fill" style="width:88%"></span></span></div>
+            <div class="stat-row"><span class="stat-lbl">STM</span><span class="stat-bar"><span class="stat-fill" style="width:100%"></span></span></div>
           </div>
         </div>
       </div>
     </div>
+
+    <div class="event-footer">
+      <button class="btn-primary" id="btn-race">
+        <span class="btn-icon">🏃</span> GO TO BLOCKS
+      </button>
+    </div>
   </div>
 
-  <div id="screen-event" class="screen">
-    <div class="select-header">
-      <button class="btn-back" id="btn-back-event">← BACK</button>
-      <h2 class="section-title" id="event-screen-title">SELECT EVENT</h2>
-    </div>
-    <div class="event-buttons" id="event-buttons"></div>
-    <div class="athlete-select">
-      <h3 class="section-label">YOUR ATHLETE</h3>
-      <div class="athlete-cards" id="athlete-cards">
-        <div class="athlete-card selected" data-athlete="0">
-          <canvas class="athlete-preview" width="60" height="80" data-idx="0"></canvas>
-          <span class="athlete-name">BOLT</span>
-          <div class="athlete-stats"><span class="stat">SPD ████░</span><span class="stat">ACC ███░░</span></div>
-        </div>
-        <div class="athlete-card" data-athlete="1">
-          <canvas class="athlete-preview" width="60" height="80" data-idx="1"></canvas>
-          <span class="athlete-name">SWIFT</span>
-          <div class="athlete-stats"><span class="stat">SPD ███░░</span><span class="stat">ACC █████</span></div>
-        </div>
-        <div class="athlete-card" data-athlete="2">
-          <canvas class="athlete-preview" width="60" height="80" data-idx="2"></canvas>
-          <span class="athlete-name">TITAN</span>
-          <div class="athlete-stats"><span class="stat">SPD ██░░░</span><span class="stat">ACC ████░</span></div>
-        </div>
-      </div>
-    </div>
-    <button class="btn-primary" id="btn-race">GO TO BLOCKS</button>
-  </div>
-
+  <!-- ══ RACE SCREEN ══ -->
   <div id="screen-race" class="screen">
     <div id="race-hud">
       <div class="hud-left">
-        <div id="hud-event-name" class="hud-event"></div>
+        <div id="hud-event-name" class="hud-event-name"></div>
         <div id="hud-lap" class="hud-lap"></div>
       </div>
       <div class="hud-center">
-        <div id="hud-time" class="hud-time">0.000</div>
+        <div class="hud-time-wrap">
+          <div id="hud-time" class="hud-time">0.000</div>
+          <div class="hud-time-label">SECONDS</div>
+        </div>
       </div>
       <div class="hud-right">
-        <div id="hud-speed-label" class="hud-label">SPEED</div>
-        <div id="hud-speed-bar" class="hud-speedbar"><div id="hud-speed-fill" class="hud-speedfill"></div></div>
-        <div id="hud-stamina-label" class="hud-label">STAMINA</div>
-        <div id="hud-stamina-bar" class="hud-speedbar"><div id="hud-stamina-fill" class="hud-staminafill"></div></div>
+        <div class="hud-bar-group">
+          <div class="hud-bar-label">SPEED</div>
+          <div class="hud-bar"><div id="hud-speed-fill" class="hud-bar-fill speed-fill"></div></div>
+        </div>
+        <div class="hud-bar-group">
+          <div class="hud-bar-label">STAMINA</div>
+          <div class="hud-bar"><div id="hud-stamina-fill" class="hud-bar-fill stamina-fill"></div></div>
+        </div>
+        <div class="hud-bar-group">
+          <div class="hud-bar-label">RHYTHM</div>
+          <div class="hud-bar"><div id="hud-rhythm-fill" class="hud-bar-fill rhythm-fill"></div></div>
+        </div>
       </div>
     </div>
+
     <canvas id="race-canvas"></canvas>
+
     <div id="race-overlay" class="race-overlay hidden">
       <div class="overlay-box">
-        <div id="overlay-phase" class="overlay-phase">GET SET</div>
+        <div id="overlay-phase" class="overlay-phase"></div>
       </div>
     </div>
-    <div id="controls-hint" class="controls-hint">MASH <kbd>SPACE</kbd> rapidly · or alternate <kbd>←</kbd> <kbd>→</kbd> for bonus speed</div>
+
+    <div class="controls-hint">
+      MASH <kbd>SPACE</kbd> rapidly &nbsp;·&nbsp; or alternate <kbd>←</kbd> <kbd>→</kbd> for rhythm bonus
+    </div>
   </div>
 
+  <!-- ══ RESULT SCREEN ══ -->
   <div id="screen-result" class="screen">
-    <div class="result-bg"></div>
+    <div class="result-bg">
+      <div class="result-rays" id="result-rays"></div>
+    </div>
     <div class="result-content">
-      <div id="result-medal" class="result-medal">🥇</div>
-      <div id="result-place" class="result-place">1ST PLACE</div>
-      <div id="result-event-name" class="result-event"></div>
-      <div id="result-time" class="result-time">9.58</div>
-      <div class="result-time-label">SECONDS</div>
+      <div id="result-medal" class="result-medal"></div>
+      <div id="result-place" class="result-place"></div>
+      <div id="result-event-name" class="result-event-name"></div>
+      <div class="result-time-block">
+        <div id="result-time" class="result-time">0.00</div>
+        <div class="result-time-label">SECONDS</div>
+      </div>
       <div id="result-record" class="result-record"></div>
+      <div id="result-ranking" class="result-ranking"></div>
       <div class="result-buttons">
-        <button class="btn-secondary" id="btn-retry">RETRY RACE</button>
-        <button class="btn-primary" id="btn-menu">MAIN MENU</button>
+        <button class="btn-secondary" id="btn-retry">↺ RETRY</button>
+        <button class="btn-primary" id="btn-menu">⌂ MENU</button>
       </div>
     </div>
   </div>
